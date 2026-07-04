@@ -29,8 +29,7 @@ pipeline {
             steps {
                 echo 'Test stage'
                 sh '''
-                    ls -la
-                    test -f build/$BUILD_FILE_ NAME
+                    test -f build/$BUILD_FILE_NAME
                     npm test
                 '''
             }
