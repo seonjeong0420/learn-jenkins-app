@@ -8,11 +8,12 @@ pipeline {
     }
 
     stages {
-
         stage('Build') {
             agent {
-                docker { image 'mcr.microsoft.com/playwright:v1.39.0-jammy' }
-                reuseNode true
+                docker { 
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy' 
+                    reuseNode true
+                }
             }
             steps {
                 sh '''
@@ -24,8 +25,7 @@ pipeline {
                 '''
             }
         }
-
-
+        
         stage('AWS') {
             agent {
                 docker { 
@@ -39,11 +39,11 @@ pipeline {
             environment {
                 AWS_S3_BUCKET = 'learn-jenkins-202607061207'
             }
+
             steps {
                 withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
                     sh '''
                         aws --version
-                        
                         aws s3 sync build s3://$AWS_S3_BUCKET
                     '''
                 }
