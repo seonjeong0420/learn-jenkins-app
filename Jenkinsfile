@@ -14,7 +14,7 @@ pipeline {
                     image 'amazon/aws-cli'
                     reuseNode true
                     // aws-cli 이미지는 기본적으로 실행 후 바로 종료되므로 엔트리포인트 무력화
-                    args "--entrypoint=''" 
+                    args "-u root --entrypoint=''" 
                 }
             }
 
@@ -22,7 +22,9 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
                     sh '''
                         aws --version
-                        aws ecs register-task-definition --cli-input-json file://aws/task-definition-prod.json
+                        yum install jq -y
+                        LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-prod.json | jq '.taskDefinition.revision')
+                        echo $LATEST_TD_REVISION
                         aws ecs update-service --cluster honorable-horse-3x91ss --service LearnJenkinsApp-Service-Prod --task-definition LearnJenkinsApp-TeskDefinition-Prod:1
                     '''
                 }
