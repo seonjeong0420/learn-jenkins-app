@@ -10,7 +10,45 @@ pipeline {
     }
 
     stages {
-        
+
+        stage('Build') {
+            agent {
+                docker { 
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy' 
+                    reuseNode true
+                }
+            }
+            steps {
+                sh '''
+                    echo '빌드 시작..'
+                    node --version
+                    npm --version
+                    npm ci
+                    npm run build
+                '''
+            }
+        }
+
+        stage('Build Docker image') {
+            agent {
+                docker { 
+                    image 'amazon/aws-cli'
+                    reuseNode true
+                    // aws-cli 이미지는 기본적으로 실행 후 바로 종료되므로 엔트리포인트 무력화
+                    args "-u root --entrypoint='' -v /var/run/docker.sock:/var/run/docker.sock"
+                }
+            }
+
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    sh '''
+                        yum install -y docker
+                        docker build --platform linux/amd64 -t myjenkinsapp .
+                    '''
+                }
+            }
+        }
+
         stage('Deploy to AWS') {
             agent {
                 docker { 
@@ -32,25 +70,6 @@ pipeline {
                         aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --services $AWS_ECS_SERVICE_PROD
                     '''
                 }
-            }
-        }
-
-
-        stage('Build') {
-            agent {
-                docker { 
-                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy' 
-                    reuseNode true
-                }
-            }
-            steps {
-                sh '''
-                    echo '빌드 시작..'
-                    node --version
-                    npm --version
-                    npm ci
-                    npm run build
-                '''
             }
         }
 
